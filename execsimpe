@@ -1,0 +1,706 @@
+-- Luau Command Panel
+-- Made by reylove
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local parentGui = (gethui and gethui()) or CoreGui
+
+local existing = parentGui:FindFirstChild("LuauCommandPanel")
+if existing then
+    existing:Destroy()
+end
+
+local ACCENT = Color3.fromRGB(0, 200, 255)
+local ACCENT2 = Color3.fromRGB(150, 0, 255)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LuauCommandPanel"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = parentGui
+
+-- ===== Animated icon =====
+local IconHolder = Instance.new("Frame")
+IconHolder.Name = "IconHolder"
+IconHolder.Size = UDim2.new(0, 60, 0, 60)
+IconHolder.Position = UDim2.new(0, 20, 0, 120)
+IconHolder.BackgroundTransparency = 1
+IconHolder.Active = true
+IconHolder.Parent = ScreenGui
+
+local Glow = Instance.new("Frame")
+Glow.Name = "Glow"
+Glow.Size = UDim2.new(1, 12, 1, 12)
+Glow.Position = UDim2.new(0, -6, 0, -6)
+Glow.BackgroundColor3 = ACCENT
+Glow.BackgroundTransparency = 0.6
+Glow.BorderSizePixel = 0
+Glow.ZIndex = 0
+Glow.Parent = IconHolder
+
+local GlowCorner = Instance.new("UICorner")
+GlowCorner.CornerRadius = UDim.new(0, 20)
+GlowCorner.Parent = Glow
+
+local Ring = Instance.new("Frame")
+Ring.Name = "Ring"
+Ring.Size = UDim2.new(1, 6, 1, 6)
+Ring.Position = UDim2.new(0, -3, 0, -3)
+Ring.BackgroundTransparency = 1
+Ring.ZIndex = 1
+Ring.Parent = IconHolder
+
+local RingStroke = Instance.new("UIStroke")
+RingStroke.Thickness = 2
+RingStroke.Color = ACCENT
+RingStroke.Transparency = 0.15
+RingStroke.Parent = Ring
+
+local RingGrad = Instance.new("UIGradient")
+RingGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.0, ACCENT),
+    ColorSequenceKeypoint.new(0.5, ACCENT2),
+    ColorSequenceKeypoint.new(1.0, ACCENT),
+})
+RingGrad.Parent = RingStroke
+
+local Icon = Instance.new("TextButton")
+Icon.Name = "Icon"
+Icon.Size = UDim2.new(1, 0, 1, 0)
+Icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Icon.BorderSizePixel = 0
+Icon.Text = "L"
+Icon.TextColor3 = Color3.fromRGB(255, 255, 255)
+Icon.TextSize = 24
+Icon.Font = Enum.Font.GothamBold
+Icon.AutoButtonColor = false
+Icon.Active = true
+Icon.ZIndex = 2
+Icon.Parent = IconHolder
+
+local IconCorner = Instance.new("UICorner")
+IconCorner.CornerRadius = UDim.new(0, 14)
+IconCorner.Parent = Icon
+
+local IconStroke = Instance.new("UIStroke")
+IconStroke.Color = Color3.fromRGB(60, 60, 60)
+IconStroke.Thickness = 1.5
+IconStroke.Parent = Icon
+
+-- pulse glow
+task.spawn(function()
+    while IconHolder.Parent do
+        local t1 = TweenService:Create(Glow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            BackgroundTransparency = 0.2,
+            Size = UDim2.new(1, 18, 1, 18),
+            Position = UDim2.new(0, -9, 0, -9),
+        })
+        t1:Play()
+        t1.Completed:Wait()
+        local t2 = TweenService:Create(Glow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            BackgroundTransparency = 0.7,
+            Size = UDim2.new(1, 8, 1, 8),
+            Position = UDim2.new(0, -4, 0, -4),
+        })
+        t2:Play()
+        t2.Completed:Wait()
+    end
+end)
+
+-- rotate ring
+local ringAngle = 0
+local ringConn
+ringConn = RunService.RenderStepped:Connect(function(dt)
+    if not IconHolder.Parent then
+        ringConn:Disconnect()
+        return
+    end
+    ringAngle = (ringAngle + dt * 90) % 360
+    Ring.Rotation = ringAngle
+end)
+
+-- tilt L
+task.spawn(function()
+    while IconHolder.Parent do
+        local up = TweenService:Create(Icon, TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Rotation = 10 })
+        up:Play(); up.Completed:Wait()
+        local down = TweenService:Create(Icon, TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Rotation = -10 })
+        down:Play(); down.Completed:Wait()
+    end
+end)
+
+-- cycle L color
+task.spawn(function()
+    while IconHolder.Parent do
+        for _, c in ipairs({ Color3.fromRGB(255,255,255), ACCENT, ACCENT2, Color3.fromRGB(255,255,255) }) do
+            if not IconHolder.Parent then break end
+            local tc = TweenService:Create(Icon, TweenInfo.new(0.7, Enum.EasingStyle.Linear), { TextColor3 = c })
+            tc:Play(); tc.Completed:Wait()
+        end
+    end
+end)
+
+Icon.MouseEnter:Connect(function()
+    TweenService:Create(IconHolder, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 66, 0, 66),
+    }):Play()
+    IconStroke.Color = ACCENT
+end)
+
+Icon.MouseLeave:Connect(function()
+    TweenService:Create(IconHolder, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 60, 0, 60),
+    }):Play()
+    IconStroke.Color = Color3.fromRGB(60, 60, 60)
+end)
+
+-- ===== Main panel =====
+local Panel = Instance.new("Frame")
+Panel.Name = "Panel"
+Panel.Size = UDim2.new(0, 360, 0, 240)
+Panel.Position = UDim2.new(0.5, -180, 0.5, -120)
+Panel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Panel.BorderSizePixel = 0
+Panel.Visible = true
+Panel.Active = true
+Panel.ClipsDescendants = false
+Panel.Parent = ScreenGui
+
+local PanelCorner = Instance.new("UICorner")
+PanelCorner.CornerRadius = UDim.new(0, 14)
+PanelCorner.Parent = Panel
+
+-- animated rainbow border
+local PanelStroke = Instance.new("UIStroke")
+PanelStroke.Color = ACCENT
+PanelStroke.Thickness = 1.5
+PanelStroke.Transparency = 0.1
+PanelStroke.Parent = Panel
+
+local PanelStrokeGrad = Instance.new("UIGradient")
+PanelStrokeGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.0, ACCENT),
+    ColorSequenceKeypoint.new(0.5, ACCENT2),
+    ColorSequenceKeypoint.new(1.0, ACCENT),
+})
+PanelStrokeGrad.Parent = PanelStroke
+
+local borderOffset = 0
+local borderConn
+borderConn = RunService.RenderStepped:Connect(function(dt)
+    if not Panel.Parent then
+        borderConn:Disconnect()
+        return
+    end
+    borderOffset = (borderOffset + dt * 0.4) % 1
+    PanelStrokeGrad.Offset = Vector2.new(borderOffset, 0)
+end)
+
+-- soft outer glow behind the panel
+local PanelGlow = Instance.new("Frame")
+PanelGlow.Name = "PanelGlow"
+PanelGlow.Size = UDim2.new(1, 14, 1, 14)
+PanelGlow.Position = UDim2.new(0, -7, 0, -7)
+PanelGlow.BackgroundColor3 = ACCENT
+PanelGlow.BackgroundTransparency = 0.85
+PanelGlow.BorderSizePixel = 0
+PanelGlow.ZIndex = 0
+PanelGlow.Parent = Panel
+
+local PanelGlowCorner = Instance.new("UICorner")
+PanelGlowCorner.CornerRadius = UDim.new(0, 20)
+PanelGlowCorner.Parent = PanelGlow
+
+-- ===== Title bar =====
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 36)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+TitleBar.BorderSizePixel = 0
+TitleBar.Active = true
+TitleBar.ZIndex = 3
+TitleBar.Parent = Panel
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 14)
+TitleCorner.Parent = TitleBar
+
+local TitleFlat = Instance.new("Frame")
+TitleFlat.Size = UDim2.new(1, 0, 0, 14)
+TitleFlat.Position = UDim2.new(0, 0, 1, -14)
+TitleFlat.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+TitleFlat.BorderSizePixel = 0
+TitleFlat.ZIndex = 4
+TitleFlat.Parent = TitleBar
+
+local TitleSep = Instance.new("Frame")
+TitleSep.Size = UDim2.new(1, 0, 0, 1)
+TitleSep.Position = UDim2.new(0, 0, 1, -1)
+TitleSep.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TitleSep.BorderSizePixel = 0
+TitleSep.ZIndex = 5
+TitleSep.Parent = TitleBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -80, 1, 0)
+TitleLabel.Position = UDim2.new(0, 14, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "Luau Command Panel"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 14
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.ZIndex = 6
+TitleLabel.Parent = TitleBar
+
+-- color-cycle the title text
+task.spawn(function()
+    while TitleLabel.Parent do
+        for _, c in ipairs({ Color3.fromRGB(255,255,255), ACCENT, ACCENT2, Color3.fromRGB(255,255,255) }) do
+            if not TitleLabel.Parent then break end
+            local tc = TweenService:Create(TitleLabel, TweenInfo.new(0.9, Enum.EasingStyle.Linear), { TextColor3 = c })
+            tc:Play(); tc.Completed:Wait()
+        end
+    end
+end)
+
+-- ===== Close button =====
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "Close"
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -32, 0, 6)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 12
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.AutoButtonColor = false
+CloseBtn.ZIndex = 7
+CloseBtn.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 7)
+CloseCorner.Parent = CloseBtn
+
+-- ===== Body =====
+local Body = Instance.new("Frame")
+Body.Name = "Body"
+Body.BackgroundTransparency = 1
+Body.Size = UDim2.new(1, 0, 1, -36)
+Body.Position = UDim2.new(0, 0, 0, 36)
+Body.ClipsDescendants = false
+Body.Parent = Panel
+
+-- ===== Line number column =====
+local LineColumn = Instance.new("Frame")
+LineColumn.Name = "LineColumn"
+LineColumn.Size = UDim2.new(0, 30, 1, -76)
+LineColumn.Position = UDim2.new(0, 14, 0, 12)
+LineColumn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+LineColumn.BorderSizePixel = 0
+LineColumn.Parent = Body
+
+local LineColumnCorner = Instance.new("UICorner")
+LineColumnCorner.CornerRadius = UDim.new(0, 8)
+LineColumnCorner.Parent = LineColumn
+
+local LineColumnStroke = Instance.new("UIStroke")
+LineColumnStroke.Color = Color3.fromRGB(50, 50, 50)
+LineColumnStroke.Thickness = 1
+LineColumnStroke.Parent = LineColumn
+
+local LineColumnFix = Instance.new("Frame")
+LineColumnFix.Size = UDim2.new(0, 8, 1, -2)
+LineColumnFix.Position = UDim2.new(1, -8, 0, 1)
+LineColumnFix.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+LineColumnFix.BorderSizePixel = 0
+LineColumnFix.Parent = LineColumn
+
+local LineNumbers = Instance.new("TextLabel")
+LineNumbers.Name = "LineNumbers"
+LineNumbers.Size = UDim2.new(1, 0, 1, 0)
+LineNumbers.BackgroundTransparency = 1
+LineNumbers.Text = "1"
+LineNumbers.TextColor3 = Color3.fromRGB(120, 120, 120)
+LineNumbers.TextSize = 13
+LineNumbers.Font = Enum.Font.Code
+LineNumbers.TextXAlignment = Enum.TextXAlignment.Right
+LineNumbers.TextYAlignment = Enum.TextYAlignment.Top
+LineNumbers.ZIndex = 2
+LineNumbers.Parent = LineColumn
+
+local LinePad = Instance.new("UIPadding")
+LinePad.PaddingRight = UDim.new(0, 6)
+LinePad.PaddingTop = UDim.new(0, 6)
+LinePad.Parent = LineNumbers
+
+-- ===== TextBox =====
+local InputBox = Instance.new("TextBox")
+InputBox.Name = "Input"
+InputBox.Size = UDim2.new(1, -88, 1, -76)
+InputBox.Position = UDim2.new(0, 44, 0, 12)
+InputBox.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+InputBox.BorderSizePixel = 0
+InputBox.Text = ""
+InputBox.PlaceholderText = "print(\"hello\")"
+InputBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 110)
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.TextSize = 13
+InputBox.Font = Enum.Font.Code
+InputBox.TextXAlignment = Enum.TextXAlignment.Left
+InputBox.TextYAlignment = Enum.TextYAlignment.Top
+InputBox.MultiLine = true
+InputBox.ClearTextOnFocus = false
+InputBox.TextWrapped = true
+InputBox.Parent = Body
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 8)
+InputCorner.Parent = InputBox
+
+local InputPad = Instance.new("UIPadding")
+InputPad.PaddingLeft = UDim.new(0, 8)
+InputPad.PaddingRight = UDim.new(0, 8)
+InputPad.PaddingTop = UDim.new(0, 6)
+InputPad.PaddingBottom = UDim.new(0, 6)
+InputPad.Parent = InputBox
+
+local InputStroke = Instance.new("UIStroke")
+InputStroke.Color = Color3.fromRGB(50, 50, 50)
+InputStroke.Thickness = 1
+InputStroke.Parent = InputBox
+
+-- ===== Execute button =====
+local ExecBtn = Instance.new("TextButton")
+ExecBtn.Name = "Execute"
+ExecBtn.Size = UDim2.new(0.5, -20, 0, 32)
+ExecBtn.Position = UDim2.new(0, 14, 1, -52)
+ExecBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ExecBtn.BorderSizePixel = 0
+ExecBtn.Text = "Executed"
+ExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExecBtn.TextSize = 13
+ExecBtn.Font = Enum.Font.GothamBold
+ExecBtn.AutoButtonColor = false
+ExecBtn.Parent = Body
+
+local ExecCorner = Instance.new("UICorner")
+ExecCorner.CornerRadius = UDim.new(0, 8)
+ExecCorner.Parent = ExecBtn
+
+local ExecStroke = Instance.new("UIStroke")
+ExecStroke.Color = ACCENT
+ExecStroke.Thickness = 1
+ExecStroke.Transparency = 0.4
+ExecStroke.Parent = ExecBtn
+
+local ExecGrad = Instance.new("UIGradient")
+ExecGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.0, ACCENT),
+    ColorSequenceKeypoint.new(0.5, ACCENT2),
+    ColorSequenceKeypoint.new(1.0, ACCENT),
+})
+ExecGrad.Parent = ExecStroke
+
+local execOffset = 0
+local execConn
+execConn = RunService.RenderStepped:Connect(function(dt)
+    if not ExecBtn.Parent then
+        execConn:Disconnect()
+        return
+    end
+    execOffset = (execOffset + dt * 0.5) % 1
+    ExecGrad.Offset = Vector2.new(execOffset, 0)
+end)
+
+-- ===== Clear button =====
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Name = "Clear"
+ClearBtn.Size = UDim2.new(0.5, -20, 0, 32)
+ClearBtn.Position = UDim2.new(0.5, 6, 1, -52)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ClearBtn.BorderSizePixel = 0
+ClearBtn.Text = "Clear"
+ClearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearBtn.TextSize = 13
+ClearBtn.Font = Enum.Font.GothamBold
+ClearBtn.AutoButtonColor = false
+ClearBtn.Parent = Body
+
+local ClearCorner = Instance.new("UICorner")
+ClearCorner.CornerRadius = UDim.new(0, 8)
+ClearCorner.Parent = ClearBtn
+
+local ClearStroke = Instance.new("UIStroke")
+ClearStroke.Color = ACCENT2
+ClearStroke.Thickness = 1
+ClearStroke.Transparency = 0.4
+ClearStroke.Parent = ClearBtn
+
+local ClearGrad = Instance.new("UIGradient")
+ClearGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.0, ACCENT2),
+    ColorSequenceKeypoint.new(0.5, ACCENT),
+    ColorSequenceKeypoint.new(1.0, ACCENT2),
+})
+ClearGrad.Parent = ClearStroke
+
+local clearOffset = 0
+local clearConn
+clearConn = RunService.RenderStepped:Connect(function(dt)
+    if not ClearBtn.Parent then
+        clearConn:Disconnect()
+        return
+    end
+    clearOffset = (clearOffset + dt * 0.5) % 1
+    ClearGrad.Offset = Vector2.new(clearOffset, 0)
+end)
+
+-- ===== Credit =====
+local Credit = Instance.new("TextLabel")
+Credit.Name = "Credit"
+Credit.Size = UDim2.new(1, -28, 0, 14)
+Credit.Position = UDim2.new(0, 14, 1, -18)
+Credit.BackgroundTransparency = 1
+Credit.Text = "Made by reylove"
+Credit.TextColor3 = Color3.fromRGB(160, 160, 160)
+Credit.TextSize = 11
+Credit.Font = Enum.Font.Gotham
+Credit.TextXAlignment = Enum.TextXAlignment.Right
+Credit.Parent = Body
+
+-- ===== Resize grip =====
+local ResizeGrip = Instance.new("TextButton")
+ResizeGrip.Name = "ResizeGrip"
+ResizeGrip.Size = UDim2.new(0, 18, 0, 18)
+ResizeGrip.Position = UDim2.new(1, -22, 1, -22)
+ResizeGrip.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ResizeGrip.BorderSizePixel = 0
+ResizeGrip.Text = ""
+ResizeGrip.AutoButtonColor = false
+ResizeGrip.ZIndex = 8
+ResizeGrip.Parent = Panel
+
+local ResizeCorner = Instance.new("UICorner")
+ResizeCorner.CornerRadius = UDim.new(0, 6)
+ResizeCorner.Parent = ResizeGrip
+
+local ResizeStroke = Instance.new("UIStroke")
+ResizeStroke.Color = Color3.fromRGB(80, 80, 80)
+ResizeStroke.Thickness = 1
+ResizeStroke.Parent = ResizeGrip
+
+local ResizeDots = Instance.new("TextLabel")
+ResizeDots.Size = UDim2.new(1, 0, 1, 0)
+ResizeDots.BackgroundTransparency = 1
+ResizeDots.Text = "◢"
+ResizeDots.TextColor3 = Color3.fromRGB(180, 180, 180)
+ResizeDots.TextSize = 12
+ResizeDots.Font = Enum.Font.GothamBold
+ResizeDots.ZIndex = 9
+ResizeDots.Parent = ResizeGrip
+
+-- ===== Line number updater =====
+local function updateLineNumbers()
+    local text = InputBox.Text
+    local count = 1
+    for _ in string.gmatch(text, "\n") do
+        count = count + 1
+    end
+    local out = {}
+    for i = 1, count do
+        out[i] = tostring(i)
+    end
+    LineNumbers.Text = table.concat(out, "\n")
+end
+
+InputBox:GetPropertyChangedSignal("Text"):Connect(updateLineNumbers)
+updateLineNumbers()
+
+-- ===== Icon dragging =====
+local iconDragging = false
+local iconDragStart
+local iconStartPos
+
+Icon.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        iconDragging = true
+        iconDragStart = input.Position
+        iconStartPos = IconHolder.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if iconDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - iconDragStart
+        IconHolder.Position = UDim2.new(
+            iconStartPos.X.Scale,
+            iconStartPos.X.Offset + delta.X,
+            iconStartPos.Y.Scale,
+            iconStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        iconDragging = false
+    end
+end)
+
+-- ===== Click icon to toggle panel =====
+local iconPressPos
+Icon.MouseButton1Down:Connect(function()
+    iconPressPos = UserInputService:GetMouseLocation()
+end)
+
+Icon.MouseButton1Click:Connect(function()
+    local now = UserInputService:GetMouseLocation()
+    local shouldToggle = true
+    if iconPressPos then
+        local dx = math.abs(now.X - iconPressPos.X)
+        local dy = math.abs(now.Y - iconPressPos.Y)
+        if dx >= 6 or dy >= 6 then
+            shouldToggle = false
+        end
+    end
+    if shouldToggle then
+        Panel.Visible = not Panel.Visible
+        if Panel.Visible then
+            Panel.BackgroundTransparency = 1
+            Panel.Size = UDim2.new(0, 360, 0, 240)
+            TweenService:Create(Panel, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 360, 0, 240),
+                BackgroundTransparency = 0,
+            }):Play()
+        end
+    end
+end)
+
+-- ===== Panel dragging by title bar =====
+local panelDragging = false
+local panelDragStart
+local panelStartPos
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        panelDragging = true
+        panelDragStart = input.Position
+        panelStartPos = Panel.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if panelDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - panelDragStart
+        Panel.Position = UDim2.new(
+            panelStartPos.X.Scale,
+            panelStartPos.X.Offset + delta.X,
+            panelStartPos.Y.Scale,
+            panelStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        panelDragging = false
+    end
+end)
+
+-- ===== Panel resize via grip =====
+local resizing = false
+local resizeStart
+local resizeStartSize
+
+local MIN_W, MIN_H = 280, 200
+local MAX_W, MAX_H = 1000, 800
+
+ResizeGrip.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        resizing = true
+        resizeStart = input.Position
+        resizeStartSize = Panel.AbsoluteSize
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - resizeStart
+        local newW = math.clamp(resizeStartSize.X + delta.X, MIN_W, MAX_W)
+        local newH = math.clamp(resizeStartSize.Y + delta.Y, MIN_H, MAX_H)
+        Panel.Size = UDim2.new(0, newW, 0, newH)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        resizing = false
+    end
+end)
+
+-- ===== Hover states =====
+CloseBtn.MouseEnter:Connect(function()
+    TweenService:Create(CloseBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(200, 40, 40) }):Play()
+end)
+CloseBtn.MouseLeave:Connect(function()
+    TweenService:Create(CloseBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(40, 40, 40) }):Play()
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+    Panel.Visible = false
+end)
+
+ExecBtn.MouseEnter:Connect(function()
+    TweenService:Create(ExecBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(45, 45, 45) }):Play()
+    TweenService:Create(ExecStroke, TweenInfo.new(0.15), { Transparency = 0, Thickness = 1.5 }):Play()
+end)
+ExecBtn.MouseLeave:Connect(function()
+    TweenService:Create(ExecBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(30, 30, 30) }):Play()
+    TweenService:Create(ExecStroke, TweenInfo.new(0.15), { Transparency = 0.4, Thickness = 1 }):Play()
+end)
+
+ClearBtn.MouseEnter:Connect(function()
+    TweenService:Create(ClearBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(45, 45, 45) }):Play()
+    TweenService:Create(ClearStroke, TweenInfo.new(0.15), { Transparency = 0, Thickness = 1.5 }):Play()
+end)
+ClearBtn.MouseLeave:Connect(function()
+    TweenService:Create(ClearBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(30, 30, 30) }):Play()
+    TweenService:Create(ClearStroke, TweenInfo.new(0.15), { Transparency = 0.4, Thickness = 1 }):Play()
+end)
+
+ResizeGrip.MouseEnter:Connect(function()
+    ResizeGrip.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+end)
+ResizeGrip.MouseLeave:Connect(function()
+    ResizeGrip.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+end)
+
+-- ===== Execute =====
+ExecBtn.MouseButton1Click:Connect(function()
+    local code = InputBox.Text
+    if code and #code > 0 then
+        local fn, err = loadstring(code)
+        if fn then
+            local ok, runtimeErr = pcall(fn)
+            if not ok then
+                warn("[Luau Command Panel] " .. tostring(runtimeErr))
+            end
+        else
+            warn("[Luau Command Panel] " .. tostring(err))
+        end
+    end
+end)
+
+-- ===== Clear =====
+ClearBtn.MouseButton1Click:Connect(function()
+    InputBox.Text = ""
+end)
